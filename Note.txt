@@ -1,0 +1,109 @@
+bison -d -o fileName.tab.c fileName.y && gcc -c -g -I.. fileName.tab.c && flex -o fileName.yy.c fileName.l && gcc -c -g -I.. fileName.yy.c && gcc -o fileName fileName.tab.o fileName.yy.o -ll
+./fileName
+
+bison -d -o simple_cal.tab.c simple_cal.y && gcc -c -g -I.. simple_cal.tab.c && flex -o simple_cal.yy.c simple_cal.l && gcc -c -g -I.. simple_cal.yy.c && gcc -o simple_cal simple_cal.tab.o simple_cal.yy.o -ll
+./simple_cal
+
+bison -d -o stack_machine.tab.c stack_machine.y && gcc -c -g -I.. stack_machine.tab.c && flex -o stack_machine.yy.c stack_machine.l && gcc -c -g -I.. stack_machine.yy.c && gcc -o stack_machine stack_machine.tab.o stack_machine.yy.o -ll
+./stack_machine
+
+bison -d -o Mini_LISP.tab.c Mini_LISP.y && gcc -c -g -I.. Mini_LISP.tab.c && flex -o Mini_LISP.yy.c Mini_LISP.l && gcc -c -g -I.. Mini_LISP.yy.c && gcc -o Mini_LISP Mini_LISP.tab.o Mini_LISP.yy.o -ll
+./Mini_LISP
+
+啟用 docker ubuntu container:
+docker exec -it compiler-ubuntu bash
+
+atoi: 把「數字」的 ASCII 轉成 integer，只能轉數字
+yytext: 目前匹配到的文字
+yyleng: 是 Lex 中的一個變數，用於記錄最近一次匹配到的 token 的長度。
+
+yacc 的 main() 進去，會執行 yyparse()：
+讀取 stdin 並經過 lex 的轉換變成 tokens，再判斷使否符合指定的 grammer，執行對應的動作。
+
+lex 與 yacc 的順序是，只要 lex 只要讀到可以轉換的 input 就會轉換為 token 給 yacc。
+例如 123 可以轉換為 NUM，讀到 123 後就會直接丟給 yacc NUM，如果有 grammer 是 NUM，yacc 也會馬上執行其對應的動作，不會等待全部讀完。
+也就是說 lex 與 yacc 是邊讀邊處理的，我們無法直接得到或預測接下來的 input 或 token 是什麼。
+
+yylval: 是 yacc 的全域變數，default 是 int
+
+$0, $-1, ... 可以 match parent 的 Nonterminal 元素，
+如果想指定某個 Nonterminal 像是 EXP 的前一個 EXP，就可以寫 $<EXP>0
+
+yyerror: 用戶自定義的錯誤處理函數。
+當語法分析器（parser）遇到語法錯誤時，它會調用 yyerror() 函數，以通知使用者發現了一個錯誤。
+void yyerror (const char *message)      // message 參數的內容是由 Bison 生成的。
+{
+    printf("%s\n", message);
+}
+
+fprintf(stderr, "%s\n", message);
+fprintf 是標準 C 函數，用於將格式化的數據寫入到指定的文件流中。
+它的使用方式類似於 printf，但不是將輸出寫入到標準輸出（stdout），而是寫入到指定的文件流中。
+函數原型為：int fprintf(FILE *stream, const char *format, ...);
+stream：指定的文件流，可以是 stdout（標準輸出）、stderr（標準錯誤輸出）或者是通過 fopen 打開的文件流。
+format：格式化字符串，包含輸出格式和要輸出的變數的描述。
+...：可變參數列表，根據 format 中的描述，指定要輸出的變數。
+fprintf(stderr, "%s\n", message); 的含義是將 message 字符串輸出到標準錯誤輸出（stderr），並在末尾插入一個換行符。
+
+當你使用 fprintf(stderr, "Unrecognized character: %s\n", yytext); 這行程式碼時，
+它會將錯誤消息 "Unrecognized character: xxx" 寫入到 stderr 流中。
+如果你在終端上運行你的程式，這條消息通常會直接顯示在終端上。
+
+%token: terminal
+%type: Non-terminal
+
+%left：左結合性，a + b + c 在左結合性下會被解釋為 (a + b) + c
+優先級舉例：%left '+' '-' 代表 + 和 - 具有相同的優先級
+%left ADDSUB
+%left MUL
+%left TP
+則是 TP 最優先
+
+%nonassoc：非結合性
+%right：右結合性
+
+
+如果懷疑以下訊息需要解決
+matrix_cal.tab.c: In function 'yyparse':
+matrix_cal.tab.c:983:16: warning: implicit declaration of function 'yylex' [-Wimplicit-function-declaration]
+  983 |       yychar = yylex ();
+      | 
+可以嘗試在 matrix_cal.tab.h 中有類似以下的函數聲明：
+int yylex(void);
+
+. Matches any single character except \n.
+* Matches zero or more occurrence of the preceding RE. Bo*   ->   B, Bo
++ Matches one or more occurrence of the preceding RE. Bo+   ->   Bo, Boo, Booo
+? Matches zero or one occurrence of the preceding RE. Bo?   ->   B, Bo
+[] Matches a character listed in brackets. If the first character is a circumflex (^), it inverses the meaning to match a not listed character. This is also called a character class. [abc]  ->  a, b, c    [_a-z]  ->  a, b, …, z    [^abc]  ->  非a, b, c
+^ Matches the beginning of a line
+$ Matches the end of a line
+| Matches either the preceding RE or the following RE. a|b  ->  a, b    (a|b  is equal to  [ab])
+\ The escape character. \.  ->  .
+{} Indicate how many times the preceding pattern is allowed to match. {times-lower-bound[,times-upper-bound]} ok{2}  ->  okok    ok{2,}  ->  okokok    ok{2,3}  -> okokok
+“…” Interprets everything within the quotation marks literally. “int”  ->  int
+() Group a series of REs together into a new RE. (abc|ABC)  ->  abc, ABC      (abc|ABC) +  ->  abcABCabc
+
+%union 在做什麼:
+C 本身就有 union 的功能，我們知道一般變數宣告時會被分配到一個記憶體位置，這個記憶體斷的大小會根據資料型態不同而不同。一般情況下不同資料型態之間彼此不能混著作運算，但其實他們本質上都只是一段存在記憶體的資料。以下是 union 的使用範例：
+
+typedef union YYSTYPE YYSTYPE;
+union YYSTYPE {
+    int x;
+    char* y;
+};
+YYSTYPE yylval;
+yylval.x = 10; // -> 會被當作 int 處理
+yylval.y = (char*)malloc(20); // -> 會被當作 char 處理
+scanf("%s", yylval.y); // -> 會被當作 char 處理
+printf("%d\n", yylval.x); // -> 會被當作 int 處理
+
+yacc 在執行時每個 token 或 type 都會帶有一個值，它就是 yylval，其型別為 YYSTYPE —— 被 typedef 為 union。
+
+
+PROGRAM     : STMT                              { return(0); } ;
+STMT        : EXP | DEF-STMT | PRINT-STMT ;
+PRINT-STMT  : lbr print-num EXP rbr             { printf("%d\n", $3); }
+            | lbr print-bool EXP rbr            { if (EXP) { printf("#t"); } else { printf("#f"); } }
+            ;
+EXP         :  number ;
